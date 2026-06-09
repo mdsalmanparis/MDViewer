@@ -1,3 +1,5 @@
+import { CODE_EXTS, getExt } from './fileTypes.js';
+
 const BASE = 'https://api.github.com';
 
 function headers(token) {
@@ -19,13 +21,14 @@ export async function fetchTree(owner, repo, token) {
   const { tree } = await treeRes.json();
 
   return tree
-    .filter(item => item.type === 'blob' && item.path.toLowerCase().endsWith('.md'))
+    .filter(item => item.type === 'blob' && CODE_EXTS.has(getExt(item.path)))
     .map(item => item.path);
 }
 
 export async function fetchFile(owner, repo, path, token) {
+  const encodedPath = path.split('/').map(encodeURIComponent).join('/');
   const res = await fetch(
-    `${BASE}/repos/${owner}/${repo}/contents/${path}`,
+    `${BASE}/repos/${owner}/${repo}/contents/${encodedPath}`,
     { headers: headers(token) }
   );
   if (!res.ok) throw new Error(`Failed to fetch file (${res.status})`);

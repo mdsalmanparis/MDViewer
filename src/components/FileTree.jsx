@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { buildTree } from '../fileTree';
+import { isMarkdown } from '../fileTypes';
 
 function IconChevronRight() {
   return (
@@ -29,6 +30,15 @@ function IconFile() {
       <polyline points="14 2 14 8 20 8"/>
       <line x1="9" y1="13" x2="15" y2="13"/>
       <line x1="9" y1="17" x2="13" y2="17"/>
+    </svg>
+  );
+}
+
+function IconCode() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="16 18 22 12 16 6"/>
+      <polyline points="8 6 2 12 8 18"/>
     </svg>
   );
 }
@@ -74,14 +84,17 @@ function TreeNode({ name, node, onSelect, selected, depth }) {
     );
   }
 
+  const isMd = isMarkdown(node.__path || '');
   return (
     <button
-      className={`tree-file-btn ${selected === node.__path ? 'active' : ''}`}
+      className={`tree-file-btn ${selected === node.__path ? 'active' : ''} ${!isMd ? 'tree-file-code' : ''}`}
       onClick={() => onSelect(node.__path)}
       style={{ paddingLeft: `${depth * 14 + 8}px` }}
       title={node.__path}
     >
-      <span className="tree-file-icon"><IconFile /></span>
+      <span className={`tree-file-icon ${!isMd ? 'tree-code-icon' : ''}`}>
+        {isMd ? <IconFile /> : <IconCode />}
+      </span>
       <span className="tree-name">{name}</span>
     </button>
   );

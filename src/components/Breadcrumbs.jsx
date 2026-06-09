@@ -4,7 +4,7 @@ export default function Breadcrumbs({ repo, selectedPath, onFolderClick }) {
   return (
     <nav className="breadcrumbs">
       <button className="bc-seg bc-root" onClick={() => onFolderClick('')}>
-        ✦ {repo.owner}/{repo.repo}
+        ✦ {repo.repo}
       </button>
       {segments.map((seg, i) => {
         const isLast = i === segments.length - 1;
