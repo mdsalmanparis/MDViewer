@@ -599,6 +599,25 @@ body {
 /* hljs overrides — transparent background since we handle it */
 .hljs { background: transparent !important; }
 
+/* ── Reading progress bar ── */
+.reading-progress-track {
+  height: 3px;
+  background: var(--border);
+  flex-shrink: 0;
+  position: relative;
+  overflow: hidden;
+}
+
+.reading-progress-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  height: 100%;
+  background: var(--accent);
+  border-radius: 0 2px 2px 0;
+  transition: width 0.08s linear;
+  min-width: 0;
+}
+
 /* ── Code file icon in tree ── */
 .tree-code-icon { color: #5b9bd5; opacity: 0.85; }
 [data-theme="light"] .tree-code-icon { color: #2d6da3; }

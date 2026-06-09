@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkBreaks from 'remark-breaks';
@@ -86,13 +86,46 @@ function CodeFileView({ content, path }) {
   );
 }
 
+/* ── Reading progress bar ── */
+function ReadingProgress({ scrollRef, path }) {
+  const [pct, setPct] = useState(0);
+
+  // Reset to 0 whenever the file changes
+  useEffect(() => { setPct(0); }, [path]);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    function onScroll() {
+      const { scrollTop, scrollHeight, clientHeight } = el;
+      const total = scrollHeight - clientHeight;
+      setPct(total > 0 ? Math.min(100, (scrollTop / total) * 100) : 0);
+    }
+    el.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+    return () => el.removeEventListener('scroll', onScroll);
+  }, [scrollRef, path]);
+
+  return (
+    <div className="reading-progress-track">
+      <div className="reading-progress-fill" style={{ width: `${pct}%` }} />
+    </div>
+  );
+}
+
 /* ── Main view ── */
 export default function MarkdownView({ content, path, loading, error, breadcrumbs }) {
   const isMd = isMarkdown(path || '');
+  const articleRef = useRef(null);
 
   return (
     <div className="md-outer">
       {breadcrumbs && <div className="bc-bar">{breadcrumbs}</div>}
+
+      {/* Progress bar — only visible when a file is open */}
+      {content && !loading && !error && (
+        <ReadingProgress scrollRef={articleRef} path={path} />
+      )}
 
       {loading && (
         <div className="md-placeholder">
@@ -117,7 +150,7 @@ export default function MarkdownView({ content, path, loading, error, breadcrumb
       )}
 
       {!loading && !error && content && (
-        <article className="md-article">
+        <article className="md-article" ref={articleRef}>
           {isMd ? (
             <div className="md-body">
               <ReactMarkdown
