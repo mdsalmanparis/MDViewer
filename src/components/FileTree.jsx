@@ -1,0 +1,113 @@
+import { useState } from 'react';
+import { buildTree } from '../fileTree';
+
+function IconChevronRight() {
+  return (
+    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="9 18 15 12 9 6"/>
+    </svg>
+  );
+}
+
+function IconFolder({ open }) {
+  return open ? (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+      <line x1="2" y1="10" x2="22" y2="10"/>
+    </svg>
+  ) : (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+    </svg>
+  );
+}
+
+function IconFile() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+      <polyline points="14 2 14 8 20 8"/>
+      <line x1="9" y1="13" x2="15" y2="13"/>
+      <line x1="9" y1="17" x2="13" y2="17"/>
+    </svg>
+  );
+}
+
+function TreeNode({ name, node, onSelect, selected, depth }) {
+  const isFolder = Object.keys(node.__children).length > 0;
+  const [open, setOpen] = useState(depth < 2);
+
+  if (isFolder) {
+    return (
+      <div className="tree-folder">
+        <button
+          className="tree-folder-btn"
+          onClick={() => setOpen(v => !v)}
+          style={{ paddingLeft: `${depth * 12 + 8}px` }}
+        >
+          <span className={`tree-arrow ${open ? 'open' : ''}`}><IconChevronRight /></span>
+          <span className="tree-folder-icon"><IconFolder open={open} /></span>
+          <span className="tree-name">{name}</span>
+        </button>
+        {open && (
+          <div className="tree-children">
+            {Object.entries(node.__children)
+              .sort(([, a], [, b]) => {
+                const aFolder = Object.keys(a.__children).length > 0;
+                const bFolder = Object.keys(b.__children).length > 0;
+                if (aFolder !== bFolder) return bFolder - aFolder;
+                return 0;
+              })
+              .map(([childName, childNode]) => (
+                <TreeNode
+                  key={childName}
+                  name={childName}
+                  node={childNode}
+                  onSelect={onSelect}
+                  selected={selected}
+                  depth={depth + 1}
+                />
+              ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <button
+      className={`tree-file-btn ${selected === node.__path ? 'active' : ''}`}
+      onClick={() => onSelect(node.__path)}
+      style={{ paddingLeft: `${depth * 12 + 8}px` }}
+      title={node.__path}
+    >
+      <span className="tree-file-icon"><IconFile /></span>
+      <span className="tree-name">{name}</span>
+    </button>
+  );
+}
+
+export default function FileTree({ paths, onSelect, selected }) {
+  const tree = buildTree(paths);
+  return (
+    <nav className="file-tree">
+      {Object.entries(tree)
+        .sort(([, a], [, b]) => {
+          const aFolder = Object.keys(a.__children).length > 0;
+          const bFolder = Object.keys(b.__children).length > 0;
+          if (aFolder !== bFolder) return bFolder - aFolder;
+          return 0;
+        })
+        .map(([name, node]) => (
+          <TreeNode
+            key={name}
+            name={name}
+            node={node}
+            onSelect={onSelect}
+            selected={selected}
+            depth={0}
+          />
+        ))}
+    </nav>
+  );
+}
