@@ -310,6 +310,25 @@ body {
 }
 .back-btn:hover { color: var(--accent); }
 
+.refresh-btn {
+  background: none;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color var(--transition), background var(--transition);
+  line-height: 0;
+}
+.refresh-btn:hover:not(:disabled) { color: var(--accent); background: var(--hover-bg); }
+.refresh-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.refresh-btn.spinning svg {
+  animation: spin 0.7s linear infinite;
+}
+
 .repo-badge {
   display: flex;
   align-items: center;
