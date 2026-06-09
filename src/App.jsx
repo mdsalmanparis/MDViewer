@@ -62,7 +62,15 @@ export default function App() {
 
   const { notebooks, save: saveNotebook, remove: removeNotebook } = useNotebooks();
 
-  useEffect(() => { document.documentElement.setAttribute('data-theme', theme); }, [theme]);
+  const THEME_COLOR = { dark: '#212119', light: '#ffffff', midnight: '#1a1726' };
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    // Update PWA status bar / browser chrome color to match active theme
+    let tag = document.querySelector('meta[name="theme-color"]');
+    if (!tag) { tag = document.createElement('meta'); tag.name = 'theme-color'; document.head.appendChild(tag); }
+    tag.content = THEME_COLOR[theme] ?? THEME_COLOR.dark;
+  }, [theme]);
 
   function closeSidebarOnMobile() {
     if (window.innerWidth < 768) setSidebarOpen(false);
