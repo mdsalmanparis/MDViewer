@@ -43,7 +43,7 @@ function TreeNode({ name, node, onSelect, selected, depth }) {
         <button
           className="tree-folder-btn"
           onClick={() => setOpen(v => !v)}
-          style={{ paddingLeft: `${depth * 12 + 8}px` }}
+          style={{ paddingLeft: `${depth * 14 + 8}px` }}
         >
           <span className={`tree-arrow ${open ? 'open' : ''}`}><IconChevronRight /></span>
           <span className="tree-folder-icon"><IconFolder open={open} /></span>
@@ -78,7 +78,7 @@ function TreeNode({ name, node, onSelect, selected, depth }) {
     <button
       className={`tree-file-btn ${selected === node.__path ? 'active' : ''}`}
       onClick={() => onSelect(node.__path)}
-      style={{ paddingLeft: `${depth * 12 + 8}px` }}
+      style={{ paddingLeft: `${depth * 14 + 8}px` }}
       title={node.__path}
     >
       <span className="tree-file-icon"><IconFile /></span>

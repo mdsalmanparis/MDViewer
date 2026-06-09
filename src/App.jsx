@@ -1,12 +1,11 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import RepoForm from './components/RepoForm';
 import FileTree from './components/FileTree';
 import MarkdownView from './components/MarkdownView';
 import Notebooks from './components/Notebooks';
 import Breadcrumbs from './components/Breadcrumbs';
-import Editor from './components/Editor';
 import { useNotebooks } from './hooks/useNotebooks';
-import { fetchTree, fetchFile, pushFile } from './github';
+import { fetchTree, fetchFile } from './github';
 import './App.css';
 
 function IconMenu() {
@@ -21,18 +20,27 @@ function IconSun() {
 function IconMoon() {
   return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>;
 }
-function IconEdit() {
-  return <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>;
-}
-function IconPlus() {
-  return <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>;
+function IconStars() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+    </svg>
+  );
 }
 
+const THEMES = ['dark', 'light', 'midnight'];
+const THEME_META = {
+  dark:     { icon: <IconSun />,   label: 'Light',    next: 'light' },
+  light:    { icon: <IconMoon />,  label: 'Midnight', next: 'midnight' },
+  midnight: { icon: <IconStars />, label: 'Dark',     next: 'dark' },
+};
+
 function ThemeToggle({ theme, onToggle, iconOnly }) {
+  const meta = THEME_META[theme] ?? THEME_META.dark;
   return (
-    <button className={`theme-toggle ${iconOnly ? 'icon-only' : ''}`} onClick={onToggle} title="Toggle theme">
-      {theme === 'dark' ? <IconSun /> : <IconMoon />}
-      {!iconOnly && <span>{theme === 'dark' ? 'Light' : 'Dark'}</span>}
+    <button className={`theme-toggle theme-toggle--${theme} ${iconOnly ? 'icon-only' : ''}`} onClick={onToggle} title={`Switch to ${meta.label}`}>
+      {meta.icon}
+      {!iconOnly && <span>{meta.label}</span>}
     </button>
   );
 }
@@ -46,14 +54,8 @@ export default function App() {
 
   const [selectedPath, setSelectedPath] = useState(null);
   const [fileContent, setFileContent]   = useState('');
-  const [fileSha, setFileSha]           = useState(null);
   const [loadingFile, setLoadingFile]   = useState(false);
   const [fileError, setFileError]       = useState('');
-
-  const [editMode, setEditMode]         = useState(false);
-  const [newFilePath, setNewFilePath]   = useState('');
-  const [showNewFile, setShowNewFile]   = useState(false);
-  const newFileRef = useRef(null);
 
   const [search, setSearch]             = useState('');
   const [sidebarOpen, setSidebarOpen]   = useState(true);
@@ -72,9 +74,7 @@ export default function App() {
     setPaths([]);
     setSelectedPath(null);
     setFileContent('');
-    setFileSha(null);
     setSearch('');
-    setEditMode(false);
     try {
       const filePaths = cachedPaths ?? await fetchTree(owner, repoName, token);
       if (filePaths.length === 0) {
@@ -97,60 +97,19 @@ export default function App() {
   const handleSelectFile = useCallback(async (path) => {
     if (!repo) return;
     setSelectedPath(path);
-    setEditMode(false);
     setLoadingFile(true);
     setFileError('');
     setFileContent('');
-    setFileSha(null);
     closeSidebarOnMobile();
     try {
-      const { content, sha } = await fetchFile(repo.owner, repo.repo, path, repo.token);
+      const content = await fetchFile(repo.owner, repo.repo, path, repo.token);
       setFileContent(content);
-      setFileSha(sha);
     } catch (e) {
       setFileError(e.message);
     } finally {
       setLoadingFile(false);
     }
   }, [repo]);
-
-  async function handleSave({ content, message, sha }) {
-    await pushFile({
-      owner: repo.owner,
-      repo: repo.repo,
-      path: selectedPath,
-      content,
-      sha,
-      token: repo.token,
-      message,
-    });
-    // Update local state with new content
-    setFileContent(content);
-    // Re-fetch to get updated SHA
-    try {
-      const { sha: newSha } = await fetchFile(repo.owner, repo.repo, selectedPath, repo.token);
-      setFileSha(newSha);
-    } catch (_) {}
-    // If new file, add to paths list
-    if (!paths.includes(selectedPath)) {
-      const updated = [...paths, selectedPath].sort();
-      setPaths(updated);
-      saveNotebook(repo.owner, repo.repo, updated);
-    }
-  }
-
-  function handleCreateFile() {
-    const p = newFilePath.trim();
-    if (!p) return;
-    const withExt = p.endsWith('.md') ? p : p + '.md';
-    setSelectedPath(withExt);
-    setFileContent('');
-    setFileSha(null);
-    setEditMode(true);
-    setShowNewFile(false);
-    setNewFilePath('');
-    closeSidebarOnMobile();
-  }
 
   function handleFolderClick(prefix) { setSearch(prefix); }
 
@@ -162,7 +121,7 @@ export default function App() {
   if (!repo && !loadingRepo) {
     return (
       <>
-        <ThemeToggle theme={theme} onToggle={() => setTheme(t => t === 'dark' ? 'light' : 'dark')} />
+        <ThemeToggle theme={theme} onToggle={() => setTheme(t => THEME_META[t]?.next ?? 'light')} />
         {repoError && <div className="global-error">⚠ {repoError}</div>}
         <div className="home-wrap">
           <RepoForm onSubmit={({ owner, repo: r, token }) => loadRepo(owner, r, token, null)} loading={false} />
@@ -172,30 +131,20 @@ export default function App() {
     );
   }
 
+  /* ── Loading ── */
   if (loadingRepo) {
     return (
       <div className="fullscreen-loader">
-        <ThemeToggle theme={theme} onToggle={() => setTheme(t => t === 'dark' ? 'light' : 'dark')} />
+        <ThemeToggle theme={theme} onToggle={() => setTheme(t => THEME_META[t]?.next ?? 'light')} />
         <div className="spinner large" />
         <p>Fetching markdown files…</p>
       </div>
     );
   }
 
+  /* ── Reader ── */
   const breadcrumbs = (
-    <div className="bc-row">
-      <Breadcrumbs repo={repo} selectedPath={selectedPath} onFolderClick={handleFolderClick} />
-      {selectedPath && !editMode && (
-        <button className="btn-edit" onClick={() => setEditMode(true)} title="Edit file">
-          <IconEdit /> <span>Edit</span>
-        </button>
-      )}
-      {editMode && (
-        <button className="btn-edit editing" onClick={() => setEditMode(false)} title="Back to view">
-          ← View
-        </button>
-      )}
-    </div>
+    <Breadcrumbs repo={repo} selectedPath={selectedPath} onFolderClick={handleFolderClick} />
   );
 
   return (
@@ -210,51 +159,19 @@ export default function App() {
             ? <span className="mobile-file">{selectedPath.split('/').pop()}</span>
             : <span>{repo.owner}/{repo.repo}</span>}
         </div>
-        <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-          {selectedPath && !editMode && (
-            <button className="btn-edit icon-only" onClick={() => setEditMode(true)} title="Edit"><IconEdit /></button>
-          )}
-          {editMode && (
-            <button className="btn-edit icon-only editing" onClick={() => setEditMode(false)} title="View">← View</button>
-          )}
-          <ThemeToggle theme={theme} onToggle={() => setTheme(t => t === 'dark' ? 'light' : 'dark')} iconOnly />
-        </div>
+        <ThemeToggle theme={theme} onToggle={() => setTheme(t => THEME_META[t]?.next ?? 'light')} iconOnly />
       </header>
 
       {sidebarOpen && <div className="sidebar-backdrop" onClick={() => setSidebarOpen(false)} />}
 
       <aside className={`sidebar ${sidebarOpen ? 'open' : 'closed'}`}>
         <div className="sidebar-header">
-          <div className="sidebar-header-top">
-            <button className="back-btn" onClick={() => { setRepo(null); setPaths([]); }}>← Back</button>
-            <button
-              className="btn-new-file"
-              onClick={() => { setShowNewFile(v => !v); setTimeout(() => newFileRef.current?.focus(), 50); }}
-              title="New file"
-            >
-              <IconPlus />
-            </button>
-          </div>
+          <button className="back-btn" onClick={() => { setRepo(null); setPaths([]); }}>← Back</button>
           <div className="repo-badge">
             <span className="dot" />
             <span>{repo.owner}/{repo.repo}</span>
           </div>
         </div>
-
-        {showNewFile && (
-          <div className="new-file-row">
-            <input
-              ref={newFileRef}
-              className="new-file-input"
-              placeholder="path/to/file.md"
-              value={newFilePath}
-              onChange={e => setNewFilePath(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter') handleCreateFile(); if (e.key === 'Escape') setShowNewFile(false); }}
-            />
-            <button className="new-file-confirm" onClick={handleCreateFile} disabled={!newFilePath.trim()}>Create</button>
-          </div>
-        )}
-
         <div className="sidebar-search">
           <input
             type="text"
@@ -275,25 +192,13 @@ export default function App() {
       </button>
 
       <main className="content-area">
-        {editMode ? (
-          <Editor
-            path={selectedPath}
-            content={fileContent}
-            sha={fileSha}
-            repo={repo}
-            isNew={!paths.includes(selectedPath)}
-            onSave={handleSave}
-            onCancel={() => setEditMode(false)}
-          />
-        ) : (
-          <MarkdownView
-            content={fileContent}
-            path={selectedPath}
-            loading={loadingFile}
-            error={fileError}
-            breadcrumbs={breadcrumbs}
-          />
-        )}
+        <MarkdownView
+          content={fileContent}
+          path={selectedPath}
+          loading={loadingFile}
+          error={fileError}
+          breadcrumbs={breadcrumbs}
+        />
       </main>
     </div>
   );
