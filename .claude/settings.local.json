@@ -13,7 +13,9 @@
       "Bash(git -C \"C:\\\\Users\\\\a130600\\\\Documents\\\\MDview\" log --oneline -5)",
       "Bash(git -C \"C:\\\\Users\\\\a130600\\\\Documents\\\\MDview\" show --stat HEAD)",
       "Bash(git -C \"C:\\\\Users\\\\a130600\\\\Documents\\\\MDview\" add .github/workflows/deploy.yml src/App.jsx src/autoSnapshot.js)",
-      "Bash(git -C 'C:\\\\Users\\\\a130600\\\\Documents\\\\MDview' commit -m ' *)"
+      "Bash(git -C 'C:\\\\Users\\\\a130600\\\\Documents\\\\MDview' commit -m ' *)",
+      "Bash(git -C \"C:\\\\Users\\\\a130600\\\\Documents\\\\MDview\" add vercel.json \".github/workflows/deploy.yml\")",
+      "Bash(git -C \"C:\\\\Users\\\\a130600\\\\Documents\\\\MDview\" add snapshot.repos.json)"
     ]
   }
 }
