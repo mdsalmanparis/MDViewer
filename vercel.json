@@ -1,0 +1,3 @@
+{
+  "buildCommand": "node scripts/fetch-snapshot.mjs && npm run build"
+}
