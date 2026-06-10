@@ -35,10 +35,7 @@ jobs:
       - name: Fetch offline snapshots
         run: npm run snapshot
         env:
-          # PAT stored in Settings → Secrets → Actions → SNAPSHOT_TOKEN
-          # Needs: repo scope (to read private repos + write to MDViewer).
-          # For public repos only, the built-in GITHUB_TOKEN also works.
-          SNAPSHOT_TOKEN: ${{ secrets.SNAPSHOT_TOKEN || github.token }}
+          SNAPSHOT_TOKEN: ${{ github.token }}
 
       - name: Build
         run: npm run build

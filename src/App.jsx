@@ -6,7 +6,7 @@ import Notebooks from './components/Notebooks';
 import Breadcrumbs from './components/Breadcrumbs';
 import { useNotebooks } from './hooks/useNotebooks';
 import { fetchTree, fetchFile, fetchSnapshot } from './github';
-import { registerRepoForSnapshot } from './autoSnapshot';
+import { registerRepoForSnapshot, saveWriteToken } from './autoSnapshot';
 import './App.css';
 
 function IconRefresh() {
@@ -116,6 +116,7 @@ export default function App() {
         setRepo({ owner, repo: repoName, token, snapshot });
         setPaths(filePaths);
         saveNotebook(owner, repoName, filePaths);
+        if (token) saveWriteToken(token);
         if (!snapshot) registerRepoForSnapshot(owner, repoName, token);
         if (window.innerWidth < 768) setSidebarOpen(true);
       }
