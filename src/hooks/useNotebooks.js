@@ -14,11 +14,13 @@ export function useNotebooks() {
     localStorage.setItem(KEY, JSON.stringify(notebooks));
   }, [notebooks]);
 
-  function save(owner, repo, paths) {
+  function save(owner, repo, paths, token) {
     const id = `${owner}/${repo}`;
     setNotebooks(prev => {
       const filtered = prev.filter(n => n.id !== id);
-      return [{ id, owner, repo, paths, fileCount: paths.length, lastVisited: new Date().toISOString() }, ...filtered].slice(0, 12);
+      const entry = { id, owner, repo, paths, fileCount: paths.length, lastVisited: new Date().toISOString() };
+      if (token) entry.token = token;
+      return [entry, ...filtered].slice(0, 12);
     });
   }
 

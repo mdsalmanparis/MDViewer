@@ -115,9 +115,9 @@ export default function App() {
       } else {
         setRepo({ owner, repo: repoName, token, snapshot });
         setPaths(filePaths);
-        saveNotebook(owner, repoName, filePaths);
         if (token) saveWriteToken(token);
         if (!snapshot) registerRepoForSnapshot(owner, repoName, token);
+        saveNotebook(owner, repoName, filePaths, token);
         if (window.innerWidth < 768) setSidebarOpen(true);
       }
     } catch (e) {
@@ -177,7 +177,7 @@ export default function App() {
         {repoError && <div className="global-error">⚠ {repoError}</div>}
         <div className="home-wrap">
           <RepoForm onSubmit={({ owner, repo: r, token }) => loadRepo(owner, r, token, null)} loading={false} />
-          <Notebooks notebooks={notebooks} onOpen={n => loadRepo(n.owner, n.repo, null, n.paths)} onRemove={removeNotebook} />
+          <Notebooks notebooks={notebooks} onOpen={n => loadRepo(n.owner, n.repo, n.token ?? null, n.paths)} onRemove={removeNotebook} />
         </div>
       </>
     );
