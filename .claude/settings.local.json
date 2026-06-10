@@ -1,7 +1,11 @@
 {
   "permissions": {
     "allow": [
-      "mcp__Claude_Preview__preview_start"
+      "mcp__Claude_Preview__preview_start",
+      "PowerShell(New-Item -ItemType Directory -Force \"C:\\\\Users\\\\a130600\\\\Documents\\\\MDview\\\\public\\\\snapshots\")",
+      "PowerShell(New-Item -ItemType Directory -Force \"C:\\\\Users\\\\a130600\\\\Documents\\\\MDview\\\\scripts\")",
+      "Bash(git -C \"C:\\\\Users\\\\a130600\\\\Documents\\\\MDview\" remote get-url origin)",
+      "Bash(git -C \"C:\\\\Users\\\\a130600\\\\Documents\\\\MDview\" remote -v)"
     ]
   }
 }

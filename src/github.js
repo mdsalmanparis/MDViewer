@@ -38,3 +38,16 @@ export async function fetchFile(owner, repo, path, token) {
   for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
   return new TextDecoder('utf-8').decode(bytes);
 }
+
+// Loads a pre-built offline snapshot from /snapshots/<owner>__<repo>.json
+// Returns null if not found (no snapshot generated yet).
+export async function fetchSnapshot(owner, repo) {
+  const url = `${import.meta.env.BASE_URL}snapshots/${owner}__${repo}.json`.replace('//', '/');
+  try {
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    return null;
+  }
+}

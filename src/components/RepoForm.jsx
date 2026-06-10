@@ -2,10 +2,8 @@ import { useState } from 'react';
 
 function parseRepoInput(input) {
   input = input.trim();
-  // Handle full GitHub URL
   const urlMatch = input.match(/github\.com\/([^/]+)\/([^/\s]+)/);
   if (urlMatch) return { owner: urlMatch[1], repo: urlMatch[2].replace(/\.git$/, '') };
-  // Handle owner/repo slug
   const slugMatch = input.match(/^([^/\s]+)\/([^/\s]+)$/);
   if (slugMatch) return { owner: slugMatch[1], repo: slugMatch[2] };
   return null;

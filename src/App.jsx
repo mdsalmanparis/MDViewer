@@ -5,7 +5,8 @@ import MarkdownView from './components/MarkdownView';
 import Notebooks from './components/Notebooks';
 import Breadcrumbs from './components/Breadcrumbs';
 import { useNotebooks } from './hooks/useNotebooks';
-import { fetchTree, fetchFile } from './github';
+import { fetchTree, fetchFile, fetchSnapshot } from './github';
+import { registerRepoForSnapshot } from './autoSnapshot';
 import './App.css';
 
 function IconRefresh() {
@@ -93,14 +94,29 @@ export default function App() {
     setFileContent('');
     setSearch('');
     try {
-      const filePaths = cachedPaths ?? await fetchTree(owner, repoName, token);
+      let filePaths, snapshot = null;
+
+      if (cachedPaths) {
+        filePaths = cachedPaths;
+      } else {
+        try {
+          filePaths = await fetchTree(owner, repoName, token);
+        } catch {
+          // GitHub blocked — try bundled snapshot
+          snapshot = await fetchSnapshot(owner, repoName);
+          if (!snapshot) throw new Error('GitHub is unreachable and no offline snapshot found for this repo.');
+          filePaths = snapshot.paths;
+        }
+      }
+
       if (filePaths.length === 0) {
-        setRepoError('No markdown files found in this repository.');
+        setRepoError('No supported files found in this repository.');
         setRepo(null);
       } else {
-        setRepo({ owner, repo: repoName, token });
+        setRepo({ owner, repo: repoName, token, snapshot });
         setPaths(filePaths);
         saveNotebook(owner, repoName, filePaths);
+        if (!snapshot) registerRepoForSnapshot(owner, repoName, token);
         if (window.innerWidth < 768) setSidebarOpen(true);
       }
     } catch (e) {
@@ -112,7 +128,7 @@ export default function App() {
   }
 
   async function refreshRepo() {
-    if (!repo || refreshing) return;
+    if (!repo || refreshing || repo.snapshot) return;
     setRefreshing(true);
     try {
       const filePaths = await fetchTree(repo.owner, repo.repo, repo.token);
@@ -135,7 +151,9 @@ export default function App() {
     setFileContent('');
     closeSidebarOnMobile();
     try {
-      const content = await fetchFile(repo.owner, repo.repo, path, repo.token);
+      const content = repo.snapshot
+        ? repo.snapshot.files[path] ?? ''
+        : await fetchFile(repo.owner, repo.repo, path, repo.token);
       setFileContent(content);
     } catch (e) {
       setFileError(e.message);
@@ -213,6 +231,11 @@ export default function App() {
           <div className="repo-badge">
             <span className="dot" />
             <span>{repo.owner}/{repo.repo}</span>
+            {repo.snapshot && (
+              <span className="snapshot-badge" title={`Offline snapshot — fetched ${new Date(repo.snapshot.fetchedAt).toLocaleDateString()}`}>
+                offline
+              </span>
+            )}
           </div>
         </div>
         <div className="sidebar-search">
