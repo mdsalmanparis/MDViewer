@@ -5,7 +5,15 @@
       "PowerShell(New-Item -ItemType Directory -Force \"C:\\\\Users\\\\a130600\\\\Documents\\\\MDview\\\\public\\\\snapshots\")",
       "PowerShell(New-Item -ItemType Directory -Force \"C:\\\\Users\\\\a130600\\\\Documents\\\\MDview\\\\scripts\")",
       "Bash(git -C \"C:\\\\Users\\\\a130600\\\\Documents\\\\MDview\" remote get-url origin)",
-      "Bash(git -C \"C:\\\\Users\\\\a130600\\\\Documents\\\\MDview\" remote -v)"
+      "Bash(git -C \"C:\\\\Users\\\\a130600\\\\Documents\\\\MDview\" remote -v)",
+      "Bash(git -C \"C:\\\\Users\\\\a130600\\\\Documents\\\\MDview\" status)",
+      "Bash(git -C \"C:\\\\Users\\\\a130600\\\\Documents\\\\MDview\" diff --stat)",
+      "Bash(git -C \"C:\\\\Users\\\\a130600\\\\Documents\\\\MDview\" status --short)",
+      "Bash(git -C \"C:\\\\Users\\\\a130600\\\\Documents\\\\MDview\" diff HEAD -- src/App.jsx src/github.js src/components/RepoForm.jsx)",
+      "Bash(git -C \"C:\\\\Users\\\\a130600\\\\Documents\\\\MDview\" log --oneline -5)",
+      "Bash(git -C \"C:\\\\Users\\\\a130600\\\\Documents\\\\MDview\" show --stat HEAD)",
+      "Bash(git -C \"C:\\\\Users\\\\a130600\\\\Documents\\\\MDview\" add .github/workflows/deploy.yml src/App.jsx src/autoSnapshot.js)",
+      "Bash(git -C 'C:\\\\Users\\\\a130600\\\\Documents\\\\MDview' commit -m ' *)"
     ]
   }
 }
