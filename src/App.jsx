@@ -152,9 +152,23 @@ export default function App() {
     setFileContent('');
     closeSidebarOnMobile();
     try {
-      const content = repo.snapshot
-        ? repo.snapshot.files[path] ?? ''
-        : await fetchFile(repo.owner, repo.repo, path, repo.token);
+      let content;
+      if (repo.snapshot) {
+        content = repo.snapshot.files[path] ?? '';
+      } else {
+        try {
+          content = await fetchFile(repo.owner, repo.repo, path, repo.token);
+        } catch {
+          // fetchFile failed (rate limit, blocked, missing token) — try snapshot
+          const snap = repo._snap ?? await fetchSnapshot(repo.owner, repo.repo);
+          if (snap?.files[path] !== undefined) {
+            content = snap.files[path];
+            setRepo(r => ({ ...r, snapshot: snap, _snap: snap }));
+          } else {
+            throw new Error('Failed to load file. GitHub is unreachable and no offline snapshot found.');
+          }
+        }
+      }
       setFileContent(content);
     } catch (e) {
       setFileError(e.message);
