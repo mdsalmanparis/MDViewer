@@ -7,12 +7,18 @@ html, body {
   overflow-x: hidden;
 }
 
-/* ── Invisible scrollbars (scrollable but no visible bar) ── */
+/* ── Themed scrollbars ── */
 * {
-  scrollbar-width: none;
-  -ms-overflow-style: none;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
 }
-*::-webkit-scrollbar { display: none; }
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover { background: var(--muted); }
 
 /* ── Claude theme tokens ── */
 :root {
@@ -26,41 +32,25 @@ html, body {
   --safe-bottom: env(safe-area-inset-bottom, 0px);
 }
 
-/* ── Dark theme (default) ── */
-[data-theme="dark"], :root {
-  --bg:       #1a1915;
-  --surface:  #212119;
-  --surface2: #2a2924;
-  --border:   #38372f;
-  --text:     #ece8df;
-  --text2:    #c5c0b4;
-  --muted:    #7c7870;
-  --accent:   #d97757;
-  --accent-h: #e8896a;
-  --accent-bg: rgba(217,119,87,0.12);
-  --active-bg: rgba(217,119,87,0.15);
-  --hover-bg: rgba(255,255,255,0.05);
-  --code-bg:  #16160f;
-  --shadow:   0 4px 24px rgba(0,0,0,0.45);
+/* ── GitHub Dark theme (default) ── */
+[data-theme="github"], :root {
+  --bg:        #0d1117;
+  --surface:   #161b22;
+  --surface2:  #21262d;
+  --border:    #30363d;
+  --text:      #e6edf3;
+  --text2:     #8b949e;
+  --muted:     #6e7681;
+  --accent:    #58a6ff;
+  --accent-h:  #79c0ff;
+  --accent-bg: rgba(88,166,255,0.1);
+  --active-bg: rgba(88,166,255,0.15);
+  --hover-bg:  rgba(255,255,255,0.05);
+  --code-bg:   #010409;
+  --shadow:    0 4px 24px rgba(1,4,9,0.6);
 }
-
-/* ── Light theme ── */
-[data-theme="light"] {
-  --bg:       #faf8f3;
-  --surface:  #ffffff;
-  --surface2: #f3f0e8;
-  --border:   #e5e0d4;
-  --text:     #1a1915;
-  --text2:    #4a4840;
-  --muted:    #928e84;
-  --accent:   #c8622e;
-  --accent-h: #b5541f;
-  --accent-bg: rgba(200,98,46,0.08);
-  --active-bg: rgba(200,98,46,0.12);
-  --hover-bg: rgba(0,0,0,0.04);
-  --code-bg:  #f0ece2;
-  --shadow:   0 4px 24px rgba(0,0,0,0.10);
-}
+[data-theme="github"] .tree-folder-icon { color: #f0883e; }
+[data-theme="github"] .tree-code-icon   { color: #79c0ff; }
 
 /* ── Midnight theme ── */
 [data-theme="midnight"] {
@@ -1556,5 +1546,196 @@ body {
   font-size: 10.5px;
   color: #4caf7d;
   font-weight: 500;
+}
+
+/* ── Python editor split layout ── */
+.content-area.split {
+  flex-direction: row;
+  overflow: hidden;
+}
+.content-area.split .md-outer {
+  flex: 1;
+  min-width: 0;
+  border-right: 1px solid var(--border);
+}
+
+/* ── Python editor toggle button (floating) ── */
+.py-toggle {
+  position: fixed;
+  bottom: 22px;
+  right: 22px;
+  z-index: 200;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.35);
+  transition: transform 0.15s, background 0.15s, opacity 0.15s;
+  font-size: 15px;
+}
+.py-toggle:hover { background: var(--accent-h); transform: scale(1.07); }
+
+/* ── Python editor panel ── */
+.py-editor {
+  width: 400px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border-left: 1px solid var(--border);
+  font-family: var(--font-mono);
+  overflow: hidden;
+}
+
+/* Panel chrome uses app theme vars */
+.py-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  background: var(--surface2);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.py-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  font-family: var(--font-sans);
+  letter-spacing: 0.02em;
+}
+.py-title-badge {
+  background: #3572A5;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 4px;
+  letter-spacing: 0.04em;
+}
+.py-actions { display: flex; align-items: center; gap: 5px; }
+.py-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 5px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text2);
+  font-size: 11px;
+  cursor: pointer;
+  font-family: var(--font-sans);
+  transition: background 0.13s, color 0.13s;
+  white-space: nowrap;
+}
+.py-btn:hover:not(:disabled) { background: var(--hover-bg); color: var(--text); }
+.py-btn:disabled { opacity: 0.35; cursor: default; }
+.py-btn--copied { color: #56d364 !important; border-color: rgba(86,211,100,0.35); background: rgba(86,211,100,0.08) !important; }
+.py-btn--clear:hover:not(:disabled) { color: #f0883e; border-color: rgba(240,136,62,0.4); }
+.py-btn--close { padding: 3px 7px; font-size: 13px; }
+.py-btn--close:hover:not(:disabled) { color: #f85149; border-color: rgba(248,81,73,0.4); }
+
+.py-body { flex: 1; display: flex; overflow: hidden; }
+
+/* Line numbers — always dark to match code area */
+.py-lines {
+  width: 44px;
+  padding: 14px 8px 14px 0;
+  text-align: right;
+  background: #0d1117;
+  color: rgba(255,255,255,0.2);
+  font-size: 12.5px;
+  line-height: 21px;
+  overflow: hidden;
+  flex-shrink: 0;
+  user-select: none;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid rgba(255,255,255,0.06);
+}
+.py-lines span { display: block; height: 21px; }
+
+/* Code area: highlighted pre + transparent textarea overlay */
+.py-code-wrap {
+  position: relative;
+  flex: 1;
+  overflow: hidden;
+  background: #0d1117;
+}
+
+/* Highlighted layer (github-dark via hljs) */
+.py-highlight {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  padding: 14px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 21px;
+  background: #0d1117;
+  white-space: pre;
+  overflow: auto;
+  pointer-events: none;
+  border-radius: 0;
+  border: none;
+  scrollbar-width: none;
+}
+.py-highlight::-webkit-scrollbar { display: none; }
+
+/* Textarea sits on top — transparent text so highlights show through */
+.py-textarea {
+  position: absolute;
+  inset: 0;
+  padding: 14px;
+  background: transparent;
+  color: transparent;
+  caret-color: #79c0ff;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 21px;
+  border: none;
+  outline: none;
+  resize: none;
+  overflow: auto;
+  white-space: pre;
+  overflow-wrap: normal;
+  tab-size: 4;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.15) transparent;
+}
+.py-textarea::-webkit-scrollbar { width: 5px; height: 5px; }
+.py-textarea::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 3px; }
+.py-textarea::placeholder { color: rgba(255,255,255,0.22); }
+
+/* Footer uses app theme */
+.py-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 12px;
+  background: var(--surface2);
+  border-top: 1px solid var(--border);
+  font-size: 11px;
+  color: var(--muted);
+  flex-shrink: 0;
+  font-family: var(--font-sans);
+}
+.py-lang { color: #3572A5; font-weight: 600; }
+
+@media (max-width: 767px) {
+  .content-area.split { flex-direction: column; }
+  .content-area.split .md-outer { flex: none; height: 50%; border-right: none; border-bottom: 1px solid var(--border); }
+  .py-editor { width: 100%; height: 50%; }
+  .py-toggle { bottom: 14px; right: 14px; width: 38px; height: 38px; }
 }
 

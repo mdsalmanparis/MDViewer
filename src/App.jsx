@@ -1,4 +1,7 @@
-import { useState, useCallback, useEffect, useMemo } from 'react';
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
+import hljs from 'highlight.js/lib/core';
+import pythonLang from 'highlight.js/lib/languages/python';
+hljs.registerLanguage('python', pythonLang);
 import RepoForm from './components/RepoForm';
 import FileTree from './components/FileTree';
 import MarkdownView from './components/MarkdownView';
@@ -33,18 +36,8 @@ function IconMenu() {
 function IconClose() {
   return <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>;
 }
-function IconSun() {
-  return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>;
-}
 function IconMoon() {
   return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>;
-}
-function IconStars() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-    </svg>
-  );
 }
 function IconNotion() {
   return (
@@ -56,16 +49,22 @@ function IconNotion() {
     </svg>
   );
 }
+function IconGitHub() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M12 2C6.477 2 2 6.477 2 12c0 4.42 2.865 8.166 6.839 9.489.5.092.682-.217.682-.482 0-.237-.008-.866-.013-1.7-2.782.604-3.369-1.34-3.369-1.34-.454-1.156-1.11-1.464-1.11-1.464-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.578 9.578 0 0 1 12 6.836c.85.004 1.705.115 2.504.337 1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.203 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.578.688.48C19.138 20.163 22 16.418 22 12c0-5.523-4.477-10-10-10z"/>
+    </svg>
+  );
+}
 
 /* ── Themes ── */
-const THEMES = ['dark', 'light', 'midnight', 'notion'];
+const THEMES = ['github', 'midnight', 'notion'];
 const THEME_META = {
-  dark:     { icon: <IconSun />,    label: 'Light',    next: 'light' },
-  light:    { icon: <IconMoon />,   label: 'Midnight', next: 'midnight' },
+  github:   { icon: <IconMoon />,   label: 'Midnight', next: 'midnight' },
   midnight: { icon: <IconNotion />, label: 'Notion',   next: 'notion' },
-  notion:   { icon: <IconStars />,  label: 'Dark',     next: 'dark' },
+  notion:   { icon: <IconGitHub />, label: 'GitHub',   next: 'github' },
 };
-const THEME_COLOR = { dark: '#212119', light: '#ffffff', midnight: '#1a1726', notion: '#f7f6f3' };
+const THEME_COLOR = { github: '#0d1117', midnight: '#1a1726', notion: '#f7f6f3' };
 
 function ThemeToggle({ theme, onToggle, iconOnly }) {
   const meta = THEME_META[theme] ?? THEME_META.dark;
@@ -226,9 +225,131 @@ function OutlinePanel({ content, path, headingChecks, onToggleHeading }) {
   );
 }
 
+/* ── Python Editor panel ── */
+function PythonEditor({ onClose }) {
+  const [code, setCode] = useState('');
+  const [copied, setCopied] = useState(false);
+  const taRef  = useRef(null);
+  const lnRef  = useRef(null);
+  const hlRef  = useRef(null);
+
+  const lineCount = useMemo(() => (code.match(/\n/g) || []).length + 1, [code]);
+
+  // Syntax-highlighted HTML (github-dark colours via hljs)
+  const highlighted = useMemo(() => {
+    if (!code) return '';
+    try { return hljs.highlight(code, { language: 'python' }).value; }
+    catch { return code.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+  }, [code]);
+
+  const syncScroll = useCallback(() => {
+    const ta = taRef.current;
+    if (!ta) return;
+    if (lnRef.current) lnRef.current.scrollTop = ta.scrollTop;
+    if (hlRef.current) { hlRef.current.scrollTop = ta.scrollTop; hlRef.current.scrollLeft = ta.scrollLeft; }
+  }, []);
+
+  const handleKeyDown = useCallback((e) => {
+    const ta = taRef.current;
+    if (!ta) return;
+    const { selectionStart: ss, selectionEnd: se, value } = ta;
+
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      if (e.shiftKey) {
+        const lineStart = value.lastIndexOf('\n', ss - 1) + 1;
+        if (value.slice(lineStart, lineStart + 4) === '    ') {
+          setCode(value.slice(0, lineStart) + value.slice(lineStart + 4));
+          requestAnimationFrame(() => { ta.selectionStart = ta.selectionEnd = Math.max(lineStart, ss - 4); });
+        }
+      } else {
+        setCode(value.slice(0, ss) + '    ' + value.slice(se));
+        requestAnimationFrame(() => { ta.selectionStart = ta.selectionEnd = ss + 4; });
+      }
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      const lineStart = value.lastIndexOf('\n', ss - 1) + 1;
+      const curLine   = value.slice(lineStart, ss);
+      const indent    = curLine.match(/^(\s*)/)[1];
+      const extra     = curLine.trimEnd().endsWith(':') ? '    ' : '';
+      const next      = value.slice(0, ss) + '\n' + indent + extra + value.slice(se);
+      setCode(next);
+      const pos = ss + 1 + indent.length + extra.length;
+      requestAnimationFrame(() => { ta.selectionStart = ta.selectionEnd = pos; });
+    }
+  }, []);
+
+  const handleCopy = useCallback(async () => {
+    if (!code.trim()) return;
+    try {
+      await navigator.clipboard.writeText(code);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {}
+  }, [code]);
+
+  return (
+    <div className="py-editor">
+      <div className="py-header">
+        <div className="py-title">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/>
+          </svg>
+          Python Editor
+          <span className="py-title-badge">PY</span>
+        </div>
+        <div className="py-actions">
+          <button className={`py-btn ${copied ? 'py-btn--copied' : ''}`} onClick={handleCopy} disabled={!code.trim()}>
+            {copied
+              ? <><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>Copied</>
+              : <><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Copy</>
+            }
+          </button>
+          <button className="py-btn py-btn--clear" onClick={() => setCode('')} disabled={!code}>Clear</button>
+          <button className="py-btn py-btn--close" onClick={onClose} title="Close">✕</button>
+        </div>
+      </div>
+
+      <div className="py-body">
+        <div className="py-lines" ref={lnRef} aria-hidden="true">
+          {Array.from({ length: lineCount }, (_, i) => <span key={i}>{i + 1}</span>)}
+        </div>
+        <div className="py-code-wrap">
+          {/* highlighted layer — behind textarea */}
+          <pre
+            ref={hlRef}
+            className="py-highlight hljs"
+            aria-hidden="true"
+            dangerouslySetInnerHTML={{ __html: highlighted + '\n' }}
+          />
+          {/* editable layer — transparent text, caret only */}
+          <textarea
+            ref={taRef}
+            className="py-textarea"
+            value={code}
+            onChange={e => setCode(e.target.value)}
+            onKeyDown={handleKeyDown}
+            onScroll={syncScroll}
+            placeholder="# Write your Python code here…"
+            spellCheck={false}
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="off"
+          />
+        </div>
+      </div>
+
+      <div className="py-footer">
+        <span>{lineCount} line{lineCount !== 1 ? 's' : ''}</span>
+        <span className="py-lang">Python 3</span>
+      </div>
+    </div>
+  );
+}
+
 /* ── App ── */
 export default function App() {
-  const [theme, setTheme]               = useState('dark');
+  const [theme, setTheme]               = useState('github');
   const [repo, setRepo]                 = useState(null);
   const [paths, setPaths]               = useState([]);
   const [loadingRepo, setLoadingRepo]   = useState(false);
@@ -243,6 +364,7 @@ export default function App() {
   const [sidebarOpen, setSidebarOpen]   = useState(true);
   const [refreshing, setRefreshing]     = useState(false);
   const [sidebarTab, setSidebarTab]     = useState('files');
+  const [pyOpen, setPyOpen]             = useState(false);
 
   const { notebooks, save: saveNotebook, remove: removeNotebook } = useNotebooks();
 
@@ -255,10 +377,11 @@ export default function App() {
     ? 0
     : (scrollPositions[selectedPath] ?? 0);
 
-  // Theme persistence
+  // Theme persistence — migrate old 'dark'/'light' to 'github'
   useEffect(() => {
     const saved = localStorage.getItem('mdview-theme');
     if (THEMES.includes(saved)) setTheme(saved);
+    else { setTheme('github'); localStorage.setItem('mdview-theme', 'github'); }
   }, []);
   useEffect(() => { localStorage.setItem('mdview-theme', theme); }, [theme]);
 
@@ -566,7 +689,7 @@ export default function App() {
         {sidebarOpen ? '‹' : '›'}
       </button>
 
-      <main className="content-area">
+      <main className={`content-area${pyOpen ? ' split' : ''}`}>
         <MarkdownView
           content={fileContent}
           path={selectedPath}
@@ -577,7 +700,20 @@ export default function App() {
           onScrollChange={saveScrollPos}
           savedScrollPct={savedScrollPct}
         />
+        {pyOpen && <PythonEditor onClose={() => setPyOpen(false)} />}
       </main>
+
+      {/* Floating Python editor toggle */}
+      <button
+        className="py-toggle"
+        onClick={() => setPyOpen(v => !v)}
+        title={pyOpen ? 'Close Python editor' : 'Open Python editor'}
+      >
+        {pyOpen
+          ? <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+        }
+      </button>
     </div>
   );
 }
