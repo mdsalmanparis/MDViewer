@@ -12,7 +12,7 @@ import {
   saveLocalCachePaths, saveLocalCacheFile, loadLocalCache,
 } from './github';
 import {
-  saveFileToCache, fetchFileFromCache,
+  saveFileToCache, fetchFileFromCache, saveRepoPaths, fetchRepoPaths,
 } from './supabase';
 import { registerRepoForSnapshot, saveWriteToken } from './autoSnapshot';
 import { isMarkdown } from './fileTypes';
@@ -284,24 +284,32 @@ export default function App() {
     try {
       let filePaths, snapshot = null;
 
+      const rid = `${owner}__${repoName}`;
       if (cachedPaths) {
         filePaths = cachedPaths;
       } else {
         try {
           filePaths = await fetchTree(owner, repoName, token);
           saveLocalCachePaths(owner, repoName, filePaths);
+          saveRepoPaths(rid, filePaths); // cross-device path sharing
         } catch {
           snapshot = await fetchSnapshot(owner, repoName);
-          if (!snapshot) {
+          if (snapshot) {
+            filePaths = snapshot.paths;
+          } else {
             const local = loadLocalCache(owner, repoName);
             if (local?.paths?.length) {
               filePaths = local.paths;
               snapshot = { ...local, fetchedAt: local.updatedAt, _local: true };
             } else {
-              throw new Error('GitHub is unreachable and no offline snapshot found for this repo.');
+              // Last resort: fetch path list from Supabase (saved by another device)
+              const remotePaths = await fetchRepoPaths(rid);
+              if (remotePaths?.length) {
+                filePaths = remotePaths;
+              } else {
+                throw new Error('GitHub is unreachable and no offline snapshot found for this repo.');
+              }
             }
-          } else {
-            filePaths = snapshot.paths;
           }
         }
       }
@@ -355,6 +363,16 @@ export default function App() {
         if (!content && repo.snapshot._local) {
           const local = loadLocalCache(repo.owner, repo.repo);
           content = local?.files?.[path] ?? '';
+        }
+        // Snapshot may not contain every file — fall back to Supabase then local cache
+        if (!content) {
+          const supaContent = await fetchFileFromCache(repoId, path);
+          if (supaContent !== null) {
+            content = supaContent;
+          } else {
+            const local = loadLocalCache(repo.owner, repo.repo);
+            content = local?.files?.[path] ?? '';
+          }
         }
       } else {
         try {

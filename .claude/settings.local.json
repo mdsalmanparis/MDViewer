@@ -25,7 +25,10 @@
       "mcp__89313884-4fd7-4aec-8a0d-4e5c354f641d__apply_migration",
       "Bash(npm install *)",
       "Bash(npm run *)",
-      "Bash(node -e ' *)"
+      "Bash(node -e ' *)",
+      "mcp__89313884-4fd7-4aec-8a0d-4e5c354f641d__execute_sql",
+      "Bash(node -e \"import\\('./src/supabase.js'\\).then\\(m => { console.log\\('client:', m.supabase ? 'CREATED' : 'NULL'\\); }\\).catch\\(e => console.error\\('import error:', e.message\\)\\)\")",
+      "mcp__89313884-4fd7-4aec-8a0d-4e5c354f641d__get_publishable_keys"
     ]
   }
 }
