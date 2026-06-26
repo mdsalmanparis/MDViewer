@@ -342,6 +342,20 @@ export default function App() {
         setPaths(filePaths);
         saveNotebook(repo.owner, repo.repo, filePaths);
         saveLocalCachePaths(repo.owner, repo.repo, filePaths);
+        const rid = `${repo.owner}__${repo.repo}`;
+        saveRepoPaths(rid, filePaths);
+
+        // Background: fetch every file and push to Supabase so private/blocked
+        // machines always get the latest version without needing GitHub access.
+        (async () => {
+          for (const p of filePaths) {
+            try {
+              const c = await fetchFile(repo.owner, repo.repo, p, repo.token);
+              saveLocalCacheFile(repo.owner, repo.repo, p, c);
+              saveFileToCache(rid, p, c);
+            } catch { /* skip files that error */ }
+          }
+        })();
       }
     } catch { /* silent */ } finally { setRefreshing(false); }
   }
@@ -359,17 +373,18 @@ export default function App() {
     try {
       let content;
       if (repo.snapshot) {
-        content = repo.snapshot.files?.[path] ?? '';
-        if (!content && repo.snapshot._local) {
-          const local = loadLocalCache(repo.owner, repo.repo);
-          content = local?.files?.[path] ?? '';
-        }
-        // Snapshot may not contain every file — fall back to Supabase then local cache
-        if (!content) {
-          const supaContent = await fetchFileFromCache(repoId, path);
-          if (supaContent !== null) {
-            content = supaContent;
-          } else {
+        // Supabase has the freshest content (saved by allowed machine) — check it first
+        const supaContent = await fetchFileFromCache(repoId, path);
+        if (supaContent !== null) {
+          content = supaContent;
+        } else {
+          // Fall back to snapshot, then local cache
+          content = repo.snapshot.files?.[path] ?? '';
+          if (!content && repo.snapshot._local) {
+            const local = loadLocalCache(repo.owner, repo.repo);
+            content = local?.files?.[path] ?? '';
+          }
+          if (!content) {
             const local = loadLocalCache(repo.owner, repo.repo);
             content = local?.files?.[path] ?? '';
           }
@@ -377,19 +392,19 @@ export default function App() {
       } else {
         try {
           content = await fetchFile(repo.owner, repo.repo, path, repo.token);
-          // Cache immediately so blocked machines get the latest version
+          // Cache so blocked machines always get the latest version
           saveLocalCacheFile(repo.owner, repo.repo, path, content);
           saveFileToCache(`${repo.owner}__${repo.repo}`, path, content);
         } catch {
-          // Fallback chain: server snapshot → Supabase cache → local browser cache
-          const snap = repo._snap ?? await fetchSnapshot(repo.owner, repo.repo);
-          if (snap?.files?.[path] !== undefined) {
-            content = snap.files[path];
-            setRepo(r => ({ ...r, snapshot: snap, _snap: snap }));
+          // Supabase first (freshest), then CI snapshot, then local browser cache
+          const supaContent = await fetchFileFromCache(repoId, path);
+          if (supaContent !== null) {
+            content = supaContent;
           } else {
-            const supaContent = await fetchFileFromCache(repoId, path);
-            if (supaContent !== null) {
-              content = supaContent;
+            const snap = repo._snap ?? await fetchSnapshot(repo.owner, repo.repo);
+            if (snap?.files?.[path] !== undefined) {
+              content = snap.files[path];
+              setRepo(r => ({ ...r, snapshot: snap, _snap: snap }));
             } else {
               const local = loadLocalCache(repo.owner, repo.repo);
               if (local?.files?.[path] !== undefined) {
