@@ -51,3 +51,37 @@ export async function fetchSnapshot(owner, repo) {
     return null;
   }
 }
+
+// ── Local browser cache ──
+// Saves fetched data to localStorage so the same device can work offline
+// even before a CI-generated snapshot is available.
+const LC_PREFIX = 'mdview-local-cache-';
+
+function lcKey(owner, repo) {
+  return `${LC_PREFIX}${owner}__${repo}`;
+}
+
+export function saveLocalCachePaths(owner, repo, paths) {
+  try {
+    const key = lcKey(owner, repo);
+    const cur = JSON.parse(localStorage.getItem(key) || '{}');
+    localStorage.setItem(key, JSON.stringify({ ...cur, paths, updatedAt: new Date().toISOString() }));
+  } catch {}
+}
+
+export function saveLocalCacheFile(owner, repo, path, content) {
+  if (content.length > 120000) return; // skip very large files to protect quota
+  try {
+    const key = lcKey(owner, repo);
+    const cur = JSON.parse(localStorage.getItem(key) || '{}');
+    const files = { ...(cur.files || {}), [path]: content };
+    localStorage.setItem(key, JSON.stringify({ ...cur, files }));
+  } catch {}
+}
+
+export function loadLocalCache(owner, repo) {
+  try {
+    const data = JSON.parse(localStorage.getItem(lcKey(owner, repo)));
+    return data && (data.paths || data.files) ? data : null;
+  } catch { return null; }
+}

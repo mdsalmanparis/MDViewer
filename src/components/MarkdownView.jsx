@@ -87,24 +87,71 @@ function CodeFileView({ content, path }) {
 }
 
 /* ── Reading progress bar ── */
-function ReadingProgress({ scrollRef, path }) {
-  const [pct, setPct] = useState(0);
+// Minimum seconds the user must spend on a file before scroll-to-bottom marks it read.
+// Prevents accidental completion from fast-scrolling.
+const MIN_READ_SECONDS = 20;
 
-  // Reset to 0 whenever the file changes
-  useEffect(() => { setPct(0); }, [path]);
+function ReadingProgress({ scrollRef, path, onMarkRead, onScrollChange }) {
+  const [pct, setPct]   = useState(0);
+  const markedRef       = useRef(false);
+  const debounceRef     = useRef(null);
+  const checkTimerRef   = useRef(null);
+  const openedAtRef     = useRef(Date.now());
+
+  useEffect(() => {
+    setPct(0);
+    markedRef.current   = false;
+    openedAtRef.current = Date.now();
+    clearTimeout(checkTimerRef.current);
+  }, [path]);
 
   useEffect(() => {
     const el = scrollRef.current;
     if (!el) return;
+
+    function tryMarkRead(p) {
+      if (markedRef.current || p < 95 || !onMarkRead) return;
+      const elapsed = (Date.now() - openedAtRef.current) / 1000;
+      if (elapsed >= MIN_READ_SECONDS) {
+        markedRef.current = true;
+        onMarkRead(path);
+      } else {
+        // Schedule a deferred check — fires when the time gate opens
+        clearTimeout(checkTimerRef.current);
+        checkTimerRef.current = setTimeout(() => {
+          if (markedRef.current) return;
+          const { scrollTop, scrollHeight, clientHeight } = el;
+          const total = scrollHeight - clientHeight;
+          const cur = total > 0 ? Math.min(100, (scrollTop / total) * 100) : 0;
+          if (cur >= 95) {        // still near the bottom after waiting
+            markedRef.current = true;
+            onMarkRead(path);
+          }
+        }, (MIN_READ_SECONDS - elapsed) * 1000);
+      }
+    }
+
     function onScroll() {
       const { scrollTop, scrollHeight, clientHeight } = el;
       const total = scrollHeight - clientHeight;
-      setPct(total > 0 ? Math.min(100, (scrollTop / total) * 100) : 0);
+      const p = total > 0 ? Math.min(100, (scrollTop / total) * 100) : 0;
+      setPct(p);
+      tryMarkRead(p);
+
+      if (onScrollChange) {
+        clearTimeout(debounceRef.current);
+        debounceRef.current = setTimeout(() => onScrollChange(path, p), 600);
+      }
     }
+
     el.addEventListener('scroll', onScroll, { passive: true });
     onScroll();
-    return () => el.removeEventListener('scroll', onScroll);
-  }, [scrollRef, path]);
+    return () => {
+      el.removeEventListener('scroll', onScroll);
+      clearTimeout(debounceRef.current);
+      clearTimeout(checkTimerRef.current);
+    };
+  }, [scrollRef, path, onMarkRead, onScrollChange]);
 
   return (
     <div className="reading-progress-track">
@@ -114,17 +161,49 @@ function ReadingProgress({ scrollRef, path }) {
 }
 
 /* ── Main view ── */
-export default function MarkdownView({ content, path, loading, error, breadcrumbs }) {
+export default function MarkdownView({
+  content,
+  path,
+  loading,
+  error,
+  breadcrumbs,
+  onMarkRead,
+  onScrollChange,
+  savedScrollPct,
+}) {
   const isMd = isMarkdown(path || '');
   const articleRef = useRef(null);
+  const restoredRef = useRef(null); // track which path we already restored
+
+  // Restore scroll position when content loads for a new path
+  useEffect(() => {
+    if (!content || loading || !articleRef.current) return;
+    if (!savedScrollPct || savedScrollPct <= 0) return;
+    if (restoredRef.current === path) return; // already restored this path
+    restoredRef.current = path;
+
+    const el = articleRef.current;
+    const timer = setTimeout(() => {
+      const total = el.scrollHeight - el.clientHeight;
+      if (total > 0) el.scrollTop = total * (savedScrollPct / 100);
+    }, 80);
+    return () => clearTimeout(timer);
+  }, [path, content, savedScrollPct, loading]);
+
+  // Reset restored flag when path changes
+  useEffect(() => { restoredRef.current = null; }, [path]);
 
   return (
     <div className="md-outer">
       {breadcrumbs && <div className="bc-bar">{breadcrumbs}</div>}
 
-      {/* Progress bar — only visible when a file is open */}
       {content && !loading && !error && (
-        <ReadingProgress scrollRef={articleRef} path={path} />
+        <ReadingProgress
+          scrollRef={articleRef}
+          path={path}
+          onMarkRead={onMarkRead}
+          onScrollChange={onScrollChange}
+        />
       )}
 
       {loading && (

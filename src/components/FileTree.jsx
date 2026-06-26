@@ -43,11 +43,39 @@ function IconCode() {
   );
 }
 
-function TreeNode({ name, node, onSelect, selected, depth }) {
+function IconCheck() {
+  return (
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="20 6 9 17 4 12"/>
+    </svg>
+  );
+}
+
+// Count total files and read files recursively in a subtree node
+function countSubtree(node, readFiles) {
+  let total = 0, read = 0;
+  for (const child of Object.values(node.__children)) {
+    const hasChildren = Object.keys(child.__children).length > 0;
+    if (hasChildren) {
+      const c = countSubtree(child, readFiles);
+      total += c.total;
+      read  += c.read;
+    } else {
+      total++;
+      if (readFiles?.has(child.__path)) read++;
+    }
+  }
+  return { total, read };
+}
+
+function TreeNode({ name, node, onSelect, selected, depth, readFiles }) {
   const isFolder = Object.keys(node.__children).length > 0;
   const [open, setOpen] = useState(depth < 2);
 
   if (isFolder) {
+    const { total, read } = countSubtree(node, readFiles);
+    const allRead = read === total && total > 0;
+
     return (
       <div className="tree-folder">
         <button
@@ -58,6 +86,11 @@ function TreeNode({ name, node, onSelect, selected, depth }) {
           <span className={`tree-arrow ${open ? 'open' : ''}`}><IconChevronRight /></span>
           <span className="tree-folder-icon"><IconFolder open={open} /></span>
           <span className="tree-name">{name}</span>
+          {read > 0 && (
+            <span className={`tree-folder-count ${allRead ? 'all-read' : ''}`}>
+              {allRead ? <IconCheck /> : `${read}/${total}`}
+            </span>
+          )}
         </button>
         {open && (
           <div className="tree-children">
@@ -76,6 +109,7 @@ function TreeNode({ name, node, onSelect, selected, depth }) {
                   onSelect={onSelect}
                   selected={selected}
                   depth={depth + 1}
+                  readFiles={readFiles}
                 />
               ))}
           </div>
@@ -84,10 +118,12 @@ function TreeNode({ name, node, onSelect, selected, depth }) {
     );
   }
 
-  const isMd = isMarkdown(node.__path || '');
+  const isMd  = isMarkdown(node.__path || '');
+  const isRead = readFiles?.has(node.__path);
+
   return (
     <button
-      className={`tree-file-btn ${selected === node.__path ? 'active' : ''} ${!isMd ? 'tree-file-code' : ''}`}
+      className={`tree-file-btn ${selected === node.__path ? 'active' : ''} ${!isMd ? 'tree-file-code' : ''} ${isRead ? 'tree-file-read' : ''}`}
       onClick={() => onSelect(node.__path)}
       style={{ paddingLeft: `${depth * 14 + 8}px` }}
       title={node.__path}
@@ -96,11 +132,12 @@ function TreeNode({ name, node, onSelect, selected, depth }) {
         {isMd ? <IconFile /> : <IconCode />}
       </span>
       <span className="tree-name">{name}</span>
+      {isRead && <span className="tree-read-tick"><IconCheck /></span>}
     </button>
   );
 }
 
-export default function FileTree({ paths, onSelect, selected }) {
+export default function FileTree({ paths, onSelect, selected, readFiles }) {
   const tree = buildTree(paths);
   return (
     <nav className="file-tree">
@@ -119,6 +156,7 @@ export default function FileTree({ paths, onSelect, selected }) {
             onSelect={onSelect}
             selected={selected}
             depth={0}
+            readFiles={readFiles}
           />
         ))}
     </nav>

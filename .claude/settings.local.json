@@ -17,7 +17,15 @@
       "Bash(git -C \"C:\\\\Users\\\\a130600\\\\Documents\\\\MDview\" add vercel.json \".github/workflows/deploy.yml\")",
       "Bash(git -C \"C:\\\\Users\\\\a130600\\\\Documents\\\\MDview\" add snapshot.repos.json)",
       "Bash(git -C \"C:\\\\Users\\\\a130600\\\\Documents\\\\MDview\" add src/hooks/useNotebooks.js src/App.jsx)",
-      "Bash(git -C \"C:\\\\Users\\\\a130600\\\\Documents\\\\MDview\" add src/App.jsx)"
+      "Bash(git -C \"C:\\\\Users\\\\a130600\\\\Documents\\\\MDview\" add src/App.jsx)",
+      "Bash(netstat -ano)",
+      "Bash(findstr \":5173\")",
+      "mcp__89313884-4fd7-4aec-8a0d-4e5c354f641d__list_projects",
+      "mcp__89313884-4fd7-4aec-8a0d-4e5c354f641d__list_tables",
+      "mcp__89313884-4fd7-4aec-8a0d-4e5c354f641d__apply_migration",
+      "Bash(npm install *)",
+      "Bash(npm run *)",
+      "Bash(node -e ' *)"
     ]
   }
 }
