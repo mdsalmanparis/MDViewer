@@ -95,12 +95,7 @@ function TreeNode({ name, node, onSelect, selected, depth, readFiles }) {
         {open && (
           <div className="tree-children">
             {Object.entries(node.__children)
-              .sort(([, a], [, b]) => {
-                const aFolder = Object.keys(a.__children).length > 0;
-                const bFolder = Object.keys(b.__children).length > 0;
-                if (aFolder !== bFolder) return bFolder - aFolder;
-                return 0;
-              })
+              .sort(treeSort)
               .map(([childName, childNode]) => (
                 <TreeNode
                   key={childName}
@@ -137,17 +132,20 @@ function TreeNode({ name, node, onSelect, selected, depth, readFiles }) {
   );
 }
 
+// Natural sort: "Module 2" before "Module 10", folders before files
+function treeSort([nameA, nodeA], [nameB, nodeB]) {
+  const aFolder = Object.keys(nodeA.__children).length > 0;
+  const bFolder = Object.keys(nodeB.__children).length > 0;
+  if (aFolder !== bFolder) return bFolder - aFolder; // folders first
+  return nameA.localeCompare(nameB, undefined, { numeric: true, sensitivity: 'base' });
+}
+
 export default function FileTree({ paths, onSelect, selected, readFiles }) {
   const tree = buildTree(paths);
   return (
     <nav className="file-tree">
       {Object.entries(tree)
-        .sort(([, a], [, b]) => {
-          const aFolder = Object.keys(a.__children).length > 0;
-          const bFolder = Object.keys(b.__children).length > 0;
-          if (aFolder !== bFolder) return bFolder - aFolder;
-          return 0;
-        })
+        .sort(treeSort)
         .map(([name, node]) => (
           <TreeNode
             key={name}
